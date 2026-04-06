@@ -16,8 +16,17 @@ export default function MindMapNode({ id, data, selected }: NodeProps) {
     }
   }, [data.autoFocus]);
 
+  const borderColor = data.color || (selected ? '#A855F7' : '#27272a');
+  const shadowColor = data.color ? `${data.color}40` : 'rgba(168,85,247,0.4)';
+
   return (
-    <div className={`flex items-center gap-2 bg-[#1a1a1a] border rounded-lg p-2 min-w-[150px] transition-all duration-200 ${selected ? 'border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'border-zinc-800 shadow-lg'}`}>
+    <div 
+      className="flex items-center gap-2 bg-[#1a1a1a] border rounded-lg p-2 min-w-[150px] transition-all duration-200"
+      style={{ 
+        borderColor: borderColor as any,
+        boxShadow: selected ? `0 0 15px ${shadowColor}` : '0 10px 15px -3px rgb(0 0 0 / 0.1)'
+      }}
+    >
       <Handle type="target" position={Position.Left} className="w-2 h-2 !bg-gray-500 border-none" />
       
       <input

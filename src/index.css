@@ -15,7 +15,9 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   margin: 0;
   padding: 0;
   width: 100vw;
@@ -31,4 +33,22 @@ html, body, #root {
 
 .react-flow__container {
   background-color: transparent !important;
+}
+
+@keyframes handleGlow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(168, 85, 247, 0.2);
+    opacity: 0.6;
+  }
+
+  50% {
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.6);
+    opacity: 1;
+  }
+}
+
+.animate-handle-glow {
+  animation: handleGlow 2s ease-in-out infinite;
 }
