@@ -88,8 +88,8 @@ export async function wrapFileKey(
     type,
     userId,
     key: bufferToBase64(wrappedBuffer),
-    salt: bufferToBase64(salt),
-    iv: bufferToBase64(iv)
+    salt: bufferToBase64(salt.buffer),
+    iv: bufferToBase64(iv.buffer)
   };
 }
 
@@ -123,7 +123,7 @@ export async function encryptMap(fileKey: CryptoKey, data: any): Promise<{ paylo
 
   return {
     payload: bufferToBase64(encryptedBuffer),
-    iv: bufferToBase64(iv)
+    iv: bufferToBase64(iv.buffer)
   };
 }
 
