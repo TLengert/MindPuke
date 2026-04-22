@@ -79,7 +79,6 @@ const useStore = create<RFState>()(
     (set, get) => ({
       nodes: [],
       edges: [],
-      theme: 'oled',
       maps: [],
       currentMapId: '',
       unexportedChanges: false,
@@ -94,7 +93,7 @@ const useStore = create<RFState>()(
       },
       onNodesChange: (changes) => {
         const newNodes = applyNodeChanges(changes, get().nodes);
-        const { currentMapId, maps, theme, edges } = get();
+        const { currentMapId, maps } = get();
         const newMaps = maps.map(m => 
           m.id === currentMapId ? { ...m, nodes: newNodes, lastModified: Date.now() } : m
         );
@@ -106,7 +105,7 @@ const useStore = create<RFState>()(
       },
       onEdgesChange: (changes) => {
         const newEdges = applyEdgeChanges(changes, get().edges);
-        const { currentMapId, maps, nodes, theme } = get();
+        const { currentMapId, maps } = get();
         const newMaps = maps.map(m => 
           m.id === currentMapId ? { ...m, edges: newEdges, lastModified: Date.now() } : m
         );
