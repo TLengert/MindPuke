@@ -40,12 +40,13 @@ const selector = (state: any) => ({
   maps: state.maps,
   renameMap: state.renameMap,
   theme: state.theme,
+  customThemeColor: state.customThemeColor,
 });
 
 function Flow() {
   const { 
     nodes, edges, onNodesChange, onEdgesChange, onConnect, setEdges,
-    addNode, isPinned, setSidebarHidden, currentMapId, maps, renameMap, theme
+    addNode, isPinned, setSidebarHidden, currentMapId, maps, renameMap, theme, customThemeColor
   } = useStore(useShallow(selector));
   const { screenToFlowPosition } = useReactFlow();
 
@@ -55,7 +56,7 @@ function Flow() {
   const editInputRef = useRef<HTMLInputElement>(null);
 
   const currentMap = maps.find((m: any) => m.id === currentMapId);
-  const themeColor = THEME_CONFIG[theme] || '#A855F7';
+  const themeColor = theme === 'custom' ? customThemeColor : (THEME_CONFIG[theme] || '#A855F7');
 
   useEffect(() => {
     if (isEditingName && editInputRef.current) {

@@ -30,12 +30,14 @@ const selector = (state: any) => ({
   isSidebarOpen: state.isSidebarOpen,
   sidebarSide: state.sidebarSide,
   theme: state.theme,
+  customThemeColor: state.customThemeColor,
   edgeType: state.edgeType,
   isPinned: state.isPinned,
   isSidebarHidden: state.isSidebarHidden,
   toggleSidebar: state.toggleSidebar,
   setSidebarSide: state.setSidebarSide,
   setTheme: state.setTheme,
+  setCustomThemeColor: state.setCustomThemeColor,
   setEdgeType: state.setEdgeType,
   togglePin: state.togglePin,
   setSidebarHidden: state.setSidebarHidden,
@@ -56,12 +58,14 @@ export default function Sidebar() {
     isSidebarOpen, 
     sidebarSide, 
     theme, 
+    customThemeColor,
     edgeType,
     isPinned,
     isSidebarHidden,
     toggleSidebar, 
     setSidebarSide, 
     setTheme,
+    setCustomThemeColor,
     setEdgeType,
     togglePin,
     setSidebarHidden,
@@ -77,8 +81,20 @@ export default function Sidebar() {
     deleteMap
   } = useStore(useShallow(selector));
 
+  const { user, logout } = useKindeAuth();
+
   const currentMap = maps.find((m: any) => m.id === currentMapId);
-  const themeColor = THEME_CONFIG[theme] || '#A855F7';
+  const themeColor = theme === 'custom' ? customThemeColor : (THEME_CONFIG[theme] || '#A855F7');
+  
+  const colors = [
+    { name: 'Purple', value: '#A855F7' },
+    { name: 'Blue', value: '#3B82F6' },
+    { name: 'Pink', value: '#EC4899' },
+    { name: 'Green', value: '#10B981' },
+    { name: 'Zinc', value: '#71717A' },
+    { name: 'White', value: '#FFFFFF' },
+    { name: 'Gold', value: '#FFD700' },
+  ];
 
   // Modals state
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -383,6 +399,27 @@ export default function Sidebar() {
                 </button>
               ))}
             </div>
+
+            {theme === 'custom' && (
+              <div className="mt-4 p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="text-[10px] uppercase font-bold tracking-widest text-zinc-500 mb-2 px-1">
+                  Primary Custom Color
+                </div>
+                <div className="flex flex-wrap gap-1.5 justify-center">
+                  {colors.map((c) => (
+                    <button
+                      key={c.value}
+                      onClick={() => setCustomThemeColor(c.value)}
+                      className={`w-6 h-6 rounded-full border border-white/10 hover:scale-110 transition-transform relative
+                        ${customThemeColor === c.value ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-black' : ''}
+                      `}
+                      style={{ backgroundColor: c.value }}
+                      title={c.name}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Edge Settings Section */}

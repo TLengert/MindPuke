@@ -24,6 +24,7 @@ interface MapData {
   nodes: Node[];
   edges: Edge[];
   theme: string;
+  customThemeColor?: string;
   edgeType: string;
   createdAt: number;
   lastModified: number;
@@ -33,6 +34,7 @@ interface RFState {
   nodes: Node[];
   edges: Edge[];
   theme: string;
+  customThemeColor: string;
   edgeType: string;
   maps: MapData[];
   currentMapId: string;
@@ -57,6 +59,7 @@ interface RFState {
   toggleSidebar: () => void;
   setSidebarSide: (side: 'left' | 'right') => void;
   setTheme: (theme: string) => void;
+  setCustomThemeColor: (color: string) => void;
   setEdgeType: (type: string) => void;
   togglePin: () => void;
   setSidebarHidden: (hidden: boolean) => void;
@@ -64,6 +67,7 @@ interface RFState {
   deleteNode: (nodeId: string) => void;
   deleteEdge: (edgeId: string) => void;
   updateNodeColor: (nodeIds: string[], color: string) => void;
+  updateEdgeColor: (edgeIds: string[], color: string) => void;
   // Local First & Export
   unexportedChanges: boolean;
   markExported: () => void;
@@ -86,6 +90,7 @@ const useStore = create<RFState>()(
       maps: [],
       currentMapId: '',
       theme: 'royal',
+      customThemeColor: '#A855F7',
       edgeType: 'smoothstep',
       unexportedChanges: false,
       markExported: () => set({ unexportedChanges: false }),
@@ -122,14 +127,14 @@ const useStore = create<RFState>()(
         });
       },
       onConnect: (connection: Connection) => {
-        const { theme, edgeType, currentMapId, maps } = get();
-        const color = THEME_CONFIG[theme];
+        const { theme, customThemeColor, edgeType, currentMapId, maps } = get();
+        const color = theme === 'custom' ? customThemeColor : THEME_CONFIG[theme];
 
         const newEdge = {
           ...connection,
           id: crypto.randomUUID(),
           type: edgeType,
-          style: color && theme !== 'custom' ? { stroke: color } : undefined,
+          style: color ? { stroke: color } : undefined,
         } as Edge;
         
         const newEdges = addEdge(newEdge, get().edges);
@@ -158,14 +163,14 @@ const useStore = create<RFState>()(
         set({ edges, maps: newMaps });
       },
       addNode: (x, y) => {
-        const { theme, nodes, currentMapId, maps } = get();
-        const color = THEME_CONFIG[theme];
+        const { theme, customThemeColor, nodes, currentMapId, maps } = get();
+        const color = theme === 'custom' ? customThemeColor : THEME_CONFIG[theme];
         const newNodeId = crypto.randomUUID();
         const newNode: Node = {
           id: newNodeId,
           type: 'mindmap',
           position: { x, y },
-          data: { label: 'New Thought', autoFocus: true, color: theme !== 'custom' ? color : undefined },
+          data: { label: 'New Thought', autoFocus: true, color: color },
         };
         const newNodes = nodes.concat(newNode);
         const newMaps = maps.map(m => 
@@ -174,18 +179,18 @@ const useStore = create<RFState>()(
         set({ nodes: newNodes, maps: newMaps, unexportedChanges: true });
       },
       addChildNode: (parentNodeId) => {
-        const { nodes, edges, theme, currentMapId, maps } = get();
+        const { nodes, edges, theme, customThemeColor, currentMapId, maps } = get();
         const parentNode = nodes.find((n) => n.id === parentNodeId);
         if (!parentNode) return;
 
-        const color = THEME_CONFIG[theme];
+        const color = theme === 'custom' ? customThemeColor : THEME_CONFIG[theme];
 
         const newNodeId = crypto.randomUUID();
         const newNode: Node = {
           id: newNodeId,
           type: 'mindmap',
           position: { x: parentNode.position.x + 250, y: parentNode.position.y },
-          data: { label: 'New Thought', autoFocus: true, color: theme !== 'custom' ? color : undefined },
+          data: { label: 'New Thought', autoFocus: true, color: color },
         };
 
         const newEdge: Edge = {
@@ -193,7 +198,7 @@ const useStore = create<RFState>()(
           source: parentNodeId,
           target: newNodeId,
           type: get().edgeType,
-          style: color && theme !== 'custom' ? { stroke: color } : undefined,
+          style: color ? { stroke: color } : undefined,
         };
 
         const newNodes = nodes.concat(newNode);
@@ -242,6 +247,7 @@ const useStore = create<RFState>()(
           ],
           edges: [],
           theme: 'royal',
+          customThemeColor: '#FFD700',
           edgeType: 'smoothstep',
           createdAt: Date.now(),
           lastModified: Date.now(),
@@ -252,6 +258,7 @@ const useStore = create<RFState>()(
           nodes: newMap.nodes,
           edges: newMap.edges,
           theme: newMap.theme,
+          customThemeColor: newMap.customThemeColor || '#FFD700',
           unexportedChanges: false,
         }));
       },
@@ -268,6 +275,7 @@ const useStore = create<RFState>()(
             nodes: targetMap.nodes,
             edges: targetMap.edges,
             theme: targetMap.theme || 'royal',
+            customThemeColor: targetMap.customThemeColor || '#FFD700',
             edgeType: targetMap.edgeType || 'smoothstep',
             unexportedChanges: false,
           });
@@ -290,6 +298,7 @@ const useStore = create<RFState>()(
             nodes: nextMap.nodes,
             edges: nextMap.edges,
             theme: nextMap.theme,
+            customThemeColor: nextMap.customThemeColor || '#FFD700',
             edgeType: nextMap.edgeType || 'smoothstep',
           });
         } else {
@@ -309,16 +318,41 @@ const useStore = create<RFState>()(
         set({ sidebarSide: side });
       },
       setTheme: (theme) => {
-        const color = THEME_CONFIG[theme];
-        const { currentMapId, maps } = get();
-        const newNodes = get().nodes.map(n => ({ ...n, data: { ...n.data, color } }));
-        const newEdges = get().edges.map(e => ({ ...e, style: { ...e.style, stroke: color } }));
+        const { currentMapId, maps, customThemeColor } = get();
+        const color = theme === 'custom' ? customThemeColor : THEME_CONFIG[theme];
+        
+        let newNodes = get().nodes;
+        let newEdges = get().edges;
+
+        if (color) {
+          newNodes = newNodes.map(n => ({ ...n, data: { ...n.data, color } }));
+          newEdges = newEdges.map(e => ({ ...e, style: { ...e.style, stroke: color } }));
+        }
+
         const newMaps = maps.map(m => 
           m.id === currentMapId ? { ...m, theme, nodes: newNodes, edges: newEdges, lastModified: Date.now() } : m
         );
         
         set({ 
           theme,
+          nodes: newNodes,
+          edges: newEdges,
+          maps: newMaps
+        });
+      },
+      setCustomThemeColor: (color) => {
+        const { currentMapId, maps, theme } = get();
+        if (theme !== 'custom') return;
+        
+        const newNodes = get().nodes.map(n => ({ ...n, data: { ...n.data, color } }));
+        const newEdges = get().edges.map(e => ({ ...e, style: { ...e.style, stroke: color } }));
+
+        const newMaps = maps.map(m => 
+          m.id === currentMapId ? { ...m, customThemeColor: color, nodes: newNodes, edges: newEdges, lastModified: Date.now() } : m
+        );
+
+        set({
+          customThemeColor: color,
           nodes: newNodes,
           edges: newEdges,
           maps: newMaps
@@ -387,6 +421,23 @@ const useStore = create<RFState>()(
           unexportedChanges: true,
         });
       },
+      updateEdgeColor: (edgeIds, color) => {
+        const { currentMapId, maps } = get();
+        const newEdges = get().edges.map((edge) => {
+          if (edgeIds.includes(edge.id)) {
+            return { ...edge, style: { ...edge.style, stroke: color } };
+          }
+          return edge;
+        });
+        const newMaps = maps.map(m => 
+          m.id === currentMapId ? { ...m, edges: newEdges, lastModified: Date.now() } : m
+        );
+        set({
+          edges: newEdges,
+          maps: newMaps,
+          unexportedChanges: true,
+        });
+      },
     }),
     {
       name: 'mindpuke-v1',
@@ -408,6 +459,7 @@ const useStore = create<RFState>()(
             nodes: state.nodes,
             edges: state.edges,
             theme: state.theme || 'royal',
+            customThemeColor: state.customThemeColor || '#FFD700',
             edgeType: state.edgeType || 'smoothstep',
             createdAt: Date.now(),
             lastModified: Date.now(),
@@ -415,6 +467,7 @@ const useStore = create<RFState>()(
           state.maps = [firstMap];
           state.currentMapId = firstMap.id;
           state.theme = firstMap.theme;
+          state.customThemeColor = firstMap.customThemeColor;
           state.edgeType = firstMap.edgeType;
         } else if (state.maps.length === 0) {
           // Absolute empty state

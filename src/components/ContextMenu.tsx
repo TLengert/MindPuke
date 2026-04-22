@@ -19,7 +19,7 @@ interface ContextMenuProps {
 
 export default function ContextMenu({ id, type, x, y, data, onClose }: ContextMenuProps) {
   const { screenToFlowPosition, fitView } = useReactFlow();
-  const { nodes, addNode, deleteNode, deleteEdge, updateNodeColor } = useStore();
+  const { nodes, edges, addNode, deleteNode, deleteEdge, updateNodeColor, updateEdgeColor } = useStore();
 
   const colors = [
     { name: 'Purple', value: '#A855F7' },
@@ -27,11 +27,18 @@ export default function ContextMenu({ id, type, x, y, data, onClose }: ContextMe
     { name: 'Pink', value: '#EC4899' },
     { name: 'Green', value: '#10B981' },
     { name: 'Zinc', value: '#71717A' },
+    { name: 'White', value: '#FFFFFF' },
+    { name: 'Gold', value: '#FFD700' },
   ];
 
   const selectedNodeIds = nodes.filter((n) => n.selected).map((n) => n.id);
   const targetNodeIds = selectedNodeIds.length > 0 && id && selectedNodeIds.includes(id) 
     ? selectedNodeIds 
+    : [id].filter(Boolean) as string[];
+
+  const selectedEdgeIds = edges.filter((e) => e.selected).map((e) => e.id);
+  const targetEdgeIds = selectedEdgeIds.length > 0 && id && selectedEdgeIds.includes(id)
+    ? selectedEdgeIds
     : [id].filter(Boolean) as string[];
 
   const handleCopy = () => {
@@ -74,7 +81,7 @@ export default function ContextMenu({ id, type, x, y, data, onClose }: ContextMe
             <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500">Node Actions</span>
           </div>
           
-          <div className="flex items-center gap-1.5 p-2 mb-1">
+          <div className="flex flex-wrap items-center gap-1.5 p-2 mb-1 max-w-[200px]">
             {colors.map((c) => (
               <button
                 key={c.value}
@@ -114,6 +121,26 @@ export default function ContextMenu({ id, type, x, y, data, onClose }: ContextMe
           <div className="px-2 py-1 mb-1 border-b border-zinc-800/50">
             <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500">Connection Actions</span>
           </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 p-2 mb-1 max-w-[200px]">
+            {colors.map((c) => (
+              <button
+                key={c.value}
+                onClick={() => {
+                  updateEdgeColor(targetEdgeIds, c.value);
+                  onClose();
+                }}
+                className="w-5 h-5 rounded-full border border-white/10 hover:scale-110 transition-transform relative group"
+                style={{ backgroundColor: c.value }}
+                title={c.name}
+              >
+                {edges.find(e => e.id === id)?.style?.stroke === c.value && (
+                  <Check className="w-3 h-3 text-white absolute inset-0 m-auto" />
+                )}
+              </button>
+            ))}
+          </div>
+
           <button
             onClick={handleDeleteEdge}
             className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400/80 hover:bg-red-500/10 hover:text-red-400 rounded-lg transition-colors text-left"
