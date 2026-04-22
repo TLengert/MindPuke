@@ -47,8 +47,10 @@ export default function MindMapNode({ id, data, selected }: NodeProps) {
       }}
     >
       {/* Target Handles */}
-      <Handle type="target" position={Position.Left} className="w-3 h-3 !bg-zinc-500 border-2 border-[#1a1a1a] hover:!bg-zinc-400 transition-colors" />
-      <Handle type="target" position={Position.Top} className="w-3 h-3 !bg-zinc-500 border-2 border-[#1a1a1a] hover:!bg-zinc-400 transition-colors" />
+      <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-zinc-500 border-2 border-[#1a1a1a] hover:!bg-zinc-400 transition-colors" style={{ top: '40%' }} />
+      <Handle type="target" position={Position.Right} id="target-right" className="w-3 h-3 !bg-zinc-500 border-2 border-[#1a1a1a] hover:!bg-zinc-400 transition-colors" style={{ top: '40%' }} />
+      <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-zinc-500 border-2 border-[#1a1a1a] hover:!bg-zinc-400 transition-colors" style={{ left: '40%' }} />
+      <Handle type="target" position={Position.Bottom} id="target-bottom" className="w-3 h-3 !bg-zinc-500 border-2 border-[#1a1a1a] hover:!bg-zinc-400 transition-colors" style={{ left: '40%' }} />
       
       <div className="flex-1 flex flex-col justify-center min-h-[24px]">
         <textarea
@@ -74,8 +76,10 @@ export default function MindMapNode({ id, data, selected }: NodeProps) {
       </button>
 
       {/* Source Handles */}
-      <Handle type="source" position={Position.Right} className="w-3 h-3 !bg-purple-500 border-2 border-[#1a1a1a] hover:!bg-purple-400 transition-colors" />
-      <Handle type="source" position={Position.Bottom} className="w-3 h-3 !bg-purple-500 border-2 border-[#1a1a1a] hover:!bg-purple-400 transition-colors" />
+      <Handle type="source" position={Position.Left} id="source-left" className="w-3 h-3 !bg-purple-500 border-2 border-[#1a1a1a] hover:!bg-purple-400 transition-colors" style={{ top: '60%' }} />
+      <Handle type="source" position={Position.Right} id="source-right" className="w-3 h-3 !bg-purple-500 border-2 border-[#1a1a1a] hover:!bg-purple-400 transition-colors" style={{ top: '60%' }} />
+      <Handle type="source" position={Position.Top} id="source-top" className="w-3 h-3 !bg-purple-500 border-2 border-[#1a1a1a] hover:!bg-purple-400 transition-colors" style={{ left: '60%' }} />
+      <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-purple-500 border-2 border-[#1a1a1a] hover:!bg-purple-400 transition-colors" style={{ left: '60%' }} />
     </div>
   );
 }

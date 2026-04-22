@@ -228,7 +228,7 @@ export default function Sidebar() {
   ];
 
   const edgeTypes = [
-    { id: 'smoothstep', label: 'Rounded', icon: <Activity className="w-4 h-4" /> },
+    { id: 'default', label: 'Curvy', icon: <Activity className="w-4 h-4" /> },
     { id: 'step', label: 'Squared', icon: <CornerDownRight className="w-4 h-4" /> },
   ];
 

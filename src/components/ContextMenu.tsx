@@ -19,7 +19,7 @@ interface ContextMenuProps {
 
 export default function ContextMenu({ id, type, x, y, data, onClose }: ContextMenuProps) {
   const { screenToFlowPosition, fitView } = useReactFlow();
-  const { nodes, edges, addNode, deleteNode, deleteEdge, updateNodeColor, updateEdgeColor } = useStore();
+  const { updateNodeColor, updateEdgeColor, addNode, deleteNode, deleteEdge } = useStore();
 
   const colors = [
     { name: 'Purple', value: '#A855F7' },
@@ -31,15 +31,30 @@ export default function ContextMenu({ id, type, x, y, data, onClose }: ContextMe
     { name: 'Gold', value: '#FFD700' },
   ];
 
-  const selectedNodeIds = nodes.filter((n) => n.selected).map((n) => n.id);
-  const targetNodeIds = selectedNodeIds.length > 0 && id && selectedNodeIds.includes(id) 
-    ? selectedNodeIds 
-    : [id].filter(Boolean) as string[];
+  const handleColorClick = (color: string) => {
+    if (type === 'node') {
+      const latestNodes = useStore.getState().nodes;
+      const selectedNodeIds = latestNodes.filter((n) => n.selected).map((n) => n.id);
+      
+      // If the right-clicked node is part of a multi-selection, color all of them.
+      // Otherwise, just color the right-clicked node.
+      const targetNodeIds = (selectedNodeIds.length > 0 && id && selectedNodeIds.includes(id))
+        ? selectedNodeIds
+        : [id].filter(Boolean) as string[];
 
-  const selectedEdgeIds = edges.filter((e) => e.selected).map((e) => e.id);
-  const targetEdgeIds = selectedEdgeIds.length > 0 && id && selectedEdgeIds.includes(id)
-    ? selectedEdgeIds
-    : [id].filter(Boolean) as string[];
+      updateNodeColor(targetNodeIds, color);
+    } else if (type === 'edge') {
+      const latestEdges = useStore.getState().edges;
+      const selectedEdgeIds = latestEdges.filter((e) => e.selected).map((e) => e.id);
+      
+      const targetEdgeIds = (selectedEdgeIds.length > 0 && id && selectedEdgeIds.includes(id))
+        ? selectedEdgeIds
+        : [id].filter(Boolean) as string[];
+
+      updateEdgeColor(targetEdgeIds, color);
+    }
+    onClose();
+  };
 
   const handleCopy = () => {
     if (data?.label) {
@@ -85,10 +100,7 @@ export default function ContextMenu({ id, type, x, y, data, onClose }: ContextMe
             {colors.map((c) => (
               <button
                 key={c.value}
-                onClick={() => {
-                  updateNodeColor(targetNodeIds, c.value);
-                  onClose();
-                }}
+                onClick={() => handleColorClick(c.value)}
                 className="w-5 h-5 rounded-full border border-white/10 hover:scale-110 transition-transform relative group"
                 style={{ backgroundColor: c.value }}
                 title={c.name}
@@ -126,15 +138,13 @@ export default function ContextMenu({ id, type, x, y, data, onClose }: ContextMe
             {colors.map((c) => (
               <button
                 key={c.value}
-                onClick={() => {
-                  updateEdgeColor(targetEdgeIds, c.value);
-                  onClose();
-                }}
+                onClick={() => handleColorClick(c.value)}
                 className="w-5 h-5 rounded-full border border-white/10 hover:scale-110 transition-transform relative group"
                 style={{ backgroundColor: c.value }}
                 title={c.name}
               >
-                {edges.find(e => e.id === id)?.style?.stroke === c.value && (
+                {/* Visual check for edge color is trickier without data prop, but we can look it up */}
+                {useStore.getState().edges.find(e => e.id === id)?.style?.stroke === c.value && (
                   <Check className="w-3 h-3 text-white absolute inset-0 m-auto" />
                 )}
               </button>
