@@ -16,7 +16,9 @@ import {
   Upload,
   LogOut,
   Database,
-  Plus
+  Plus,
+  Activity,
+  CornerDownRight
 } from 'lucide-react';
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { useState } from 'react';
@@ -28,11 +30,13 @@ const selector = (state: any) => ({
   isSidebarOpen: state.isSidebarOpen,
   sidebarSide: state.sidebarSide,
   theme: state.theme,
+  edgeType: state.edgeType,
   isPinned: state.isPinned,
   isSidebarHidden: state.isSidebarHidden,
   toggleSidebar: state.toggleSidebar,
   setSidebarSide: state.setSidebarSide,
   setTheme: state.setTheme,
+  setEdgeType: state.setEdgeType,
   togglePin: state.togglePin,
   setSidebarHidden: state.setSidebarHidden,
   unexportedChanges: state.unexportedChanges,
@@ -52,11 +56,13 @@ export default function Sidebar() {
     isSidebarOpen, 
     sidebarSide, 
     theme, 
+    edgeType,
     isPinned,
     isSidebarHidden,
     toggleSidebar, 
     setSidebarSide, 
     setTheme,
+    setEdgeType,
     togglePin,
     setSidebarHidden,
     unexportedChanges,
@@ -71,7 +77,8 @@ export default function Sidebar() {
     deleteMap
   } = useStore(useShallow(selector));
 
-  const { user, logout } = useKindeAuth();
+  const currentMap = maps.find((m: any) => m.id === currentMapId);
+  const themeColor = THEME_CONFIG[theme] || '#A855F7';
 
   // Modals state
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -205,6 +212,11 @@ export default function Sidebar() {
     { id: 'custom', label: 'Custom', icon: <Palette className="w-4 h-4" color="#71717A" /> },
   ];
 
+  const edgeTypes = [
+    { id: 'smoothstep', label: 'Rounded', icon: <Activity className="w-4 h-4" /> },
+    { id: 'step', label: 'Squared', icon: <CornerDownRight className="w-4 h-4" /> },
+  ];
+
   // Calculate transform based on side and focus state
   const isActuallyHidden = isSidebarHidden && !isPinned;
   const translation = isActuallyHidden
@@ -232,7 +244,10 @@ export default function Sidebar() {
             ${sidebarSide === 'left' ? 'right-0' : 'left-0'}
           `}
         >
-          <div className="w-1 h-12 bg-purple-500/40 rounded-full group-hover:bg-purple-500 transition-colors animate-handle-glow" />
+          <div 
+            className="w-1 h-12 rounded-full transition-colors animate-handle-glow" 
+            style={{ backgroundColor: `${themeColor}66` }}
+          />
         </button>
       )}
 
@@ -240,11 +255,11 @@ export default function Sidebar() {
       <div className={`p-4 flex items-center justify-between border-b border-zinc-800/50 ${isActuallyHidden ? 'opacity-0' : 'opacity-100'} transition-opacity`}>
         {isSidebarOpen ? (
           <div className="flex items-center gap-2">
-            <Brain className="w-5 h-5 text-purple-500" />
+            <Brain className="w-5 h-5 transition-colors" style={{ color: themeColor }} />
             <span className="font-bold text-white tracking-tight">MindPuke</span>
           </div>
         ) : (
-          <Brain className="w-6 h-6 text-purple-500 mx-auto" />
+          <Brain className="w-6 h-6 mx-auto transition-colors" style={{ color: themeColor }} />
         )}
         
         {isSidebarOpen && (
@@ -365,6 +380,34 @@ export default function Sidebar() {
                     {t.icon}
                   </div>
                   <span className="text-sm font-medium">{t.label}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* Edge Settings Section */}
+          <section>
+            <div className="flex items-center gap-2 mb-3 text-zinc-500 uppercase text-[10px] font-bold tracking-widest px-1">
+              <Activity className="w-3 h-3" />
+              <span>Line Style</span>
+            </div>
+            <div className="flex gap-2">
+              {edgeTypes.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setEdgeType(t.id)}
+                  className={`flex-1 flex items-center justify-center gap-2 p-2.5 rounded-xl border transition-all duration-200 group
+                    ${edgeType === t.id 
+                      ? 'bg-purple-500/10 border-purple-500/50 text-white shadow-[0_0_15px_rgba(168,85,247,0.15)]' 
+                      : 'bg-transparent border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'}
+                  `}
+                >
+                  <div className={`p-1.5 rounded-lg transition-colors 
+                    ${edgeType === t.id ? 'bg-purple-500/20 text-purple-400' : 'bg-zinc-900 group-hover:bg-zinc-800 text-zinc-500'}
+                  `}>
+                    {t.icon}
+                  </div>
+                  <span className="text-xs font-semibold">{t.label}</span>
                 </button>
               ))}
             </div>

@@ -24,6 +24,7 @@ interface MapData {
   nodes: Node[];
   edges: Edge[];
   theme: string;
+  edgeType: string;
   createdAt: number;
   lastModified: number;
 }
@@ -32,6 +33,7 @@ interface RFState {
   nodes: Node[];
   edges: Edge[];
   theme: string;
+  edgeType: string;
   maps: MapData[];
   currentMapId: string;
   onNodesChange: OnNodesChange;
@@ -55,11 +57,13 @@ interface RFState {
   toggleSidebar: () => void;
   setSidebarSide: (side: 'left' | 'right') => void;
   setTheme: (theme: string) => void;
+  setEdgeType: (type: string) => void;
   togglePin: () => void;
   setSidebarHidden: (hidden: boolean) => void;
   // Node Management
   deleteNode: (nodeId: string) => void;
-  updateNodeColor: (nodeId: string, color: string) => void;
+  deleteEdge: (edgeId: string) => void;
+  updateNodeColor: (nodeIds: string[], color: string) => void;
   // Local First & Export
   unexportedChanges: boolean;
   markExported: () => void;
@@ -81,6 +85,8 @@ const useStore = create<RFState>()(
       edges: [],
       maps: [],
       currentMapId: '',
+      theme: 'royal',
+      edgeType: 'smoothstep',
       unexportedChanges: false,
       markExported: () => set({ unexportedChanges: false }),
       markChanged: () => set({ unexportedChanges: true }),
@@ -116,12 +122,13 @@ const useStore = create<RFState>()(
         });
       },
       onConnect: (connection: Connection) => {
-        const { theme, currentMapId, maps } = get();
+        const { theme, edgeType, currentMapId, maps } = get();
         const color = THEME_CONFIG[theme];
 
         const newEdge = {
           ...connection,
           id: crypto.randomUUID(),
+          type: edgeType,
           style: color && theme !== 'custom' ? { stroke: color } : undefined,
         } as Edge;
         
@@ -185,7 +192,7 @@ const useStore = create<RFState>()(
           id: crypto.randomUUID(),
           source: parentNodeId,
           target: newNodeId,
-          type: 'default',
+          type: get().edgeType,
           style: color && theme !== 'custom' ? { stroke: color } : undefined,
         };
 
@@ -235,6 +242,7 @@ const useStore = create<RFState>()(
           ],
           edges: [],
           theme: 'royal',
+          edgeType: 'smoothstep',
           createdAt: Date.now(),
           lastModified: Date.now(),
         };
@@ -260,6 +268,7 @@ const useStore = create<RFState>()(
             nodes: targetMap.nodes,
             edges: targetMap.edges,
             theme: targetMap.theme || 'royal',
+            edgeType: targetMap.edgeType || 'smoothstep',
             unexportedChanges: false,
           });
         }
@@ -281,6 +290,7 @@ const useStore = create<RFState>()(
             nodes: nextMap.nodes,
             edges: nextMap.edges,
             theme: nextMap.theme,
+            edgeType: nextMap.edgeType || 'smoothstep',
           });
         } else {
           set({ maps: newMaps });
@@ -314,6 +324,19 @@ const useStore = create<RFState>()(
           maps: newMaps
         });
       },
+      setEdgeType: (type) => {
+        const { currentMapId, maps } = get();
+        const newEdges = get().edges.map(e => ({ ...e, type }));
+        const newMaps = maps.map(m => 
+          m.id === currentMapId ? { ...m, edgeType: type, edges: newEdges, lastModified: Date.now() } : m
+        );
+        set({ 
+          edgeType: type,
+          edges: newEdges,
+          maps: newMaps,
+          unexportedChanges: true 
+        });
+      },
       togglePin: () => {
         set({ isPinned: !get().isPinned });
       },
@@ -335,10 +358,22 @@ const useStore = create<RFState>()(
           unexportedChanges: true,
         });
       },
-      updateNodeColor: (nodeId, color) => {
+      deleteEdge: (edgeId) => {
+        const { currentMapId, maps } = get();
+        const newEdges = get().edges.filter((edge) => edge.id !== edgeId);
+        const newMaps = maps.map(m => 
+          m.id === currentMapId ? { ...m, edges: newEdges, lastModified: Date.now() } : m
+        );
+        set({
+          edges: newEdges,
+          maps: newMaps,
+          unexportedChanges: true,
+        });
+      },
+      updateNodeColor: (nodeIds, color) => {
         const { currentMapId, maps } = get();
         const newNodes = get().nodes.map((node) => {
-          if (node.id === nodeId) {
+          if (nodeIds.includes(node.id)) {
             return { ...node, data: { ...node.data, color } };
           }
           return node;
@@ -373,12 +408,14 @@ const useStore = create<RFState>()(
             nodes: state.nodes,
             edges: state.edges,
             theme: state.theme || 'royal',
+            edgeType: state.edgeType || 'smoothstep',
             createdAt: Date.now(),
             lastModified: Date.now(),
           };
           state.maps = [firstMap];
           state.currentMapId = firstMap.id;
           state.theme = firstMap.theme;
+          state.edgeType = firstMap.edgeType;
         } else if (state.maps.length === 0) {
           // Absolute empty state
           state.createMap('My First Journey');
@@ -389,6 +426,7 @@ const useStore = create<RFState>()(
           state.nodes = first.nodes;
           state.edges = first.edges;
           state.theme = first.theme;
+          state.edgeType = first.edgeType || 'smoothstep';
         } else {
           // Re-sync active nodes/edges/theme from maps to be safe
           const active = state.maps.find(m => m.id === state.currentMapId);
@@ -396,6 +434,7 @@ const useStore = create<RFState>()(
             state.nodes = active.nodes;
             state.edges = active.edges;
             state.theme = active.theme;
+            state.edgeType = active.edgeType || 'smoothstep';
           }
         }
       }

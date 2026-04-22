@@ -1,7 +1,19 @@
-import { ReactFlow, Background, Controls, MiniMap, Panel, BackgroundVariant, ReactFlowProvider, useReactFlow } from '@xyflow/react';
+import { 
+  ReactFlow, 
+  Background, 
+  Controls, 
+  MiniMap, 
+  Panel, 
+  BackgroundVariant, 
+  ReactFlowProvider, 
+  useReactFlow,
+  reconnectEdge,
+  type Edge,
+  type Connection
+} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useShallow } from 'zustand/react/shallow';
-import useStore, { setActiveUserId } from './store/useStore';
+import useStore, { setActiveUserId, THEME_CONFIG } from './store/useStore';
 import { Brain, Pencil, Check, X } from 'lucide-react';
 import MindMapNode from './components/MindMapNode';
 import Sidebar from './components/Sidebar';
@@ -20,6 +32,7 @@ const selector = (state: any) => ({
   onNodesChange: state.onNodesChange,
   onEdgesChange: state.onEdgesChange,
   onConnect: state.onConnect,
+  setEdges: state.setEdges,
   addNode: state.addNode,
   isPinned: state.isPinned,
   setSidebarHidden: state.setSidebarHidden,
@@ -31,17 +44,18 @@ const selector = (state: any) => ({
 
 function Flow() {
   const { 
-    nodes, edges, onNodesChange, onEdgesChange, onConnect, 
+    nodes, edges, onNodesChange, onEdgesChange, onConnect, setEdges,
     addNode, isPinned, setSidebarHidden, currentMapId, maps, renameMap, theme
   } = useStore(useShallow(selector));
   const { screenToFlowPosition } = useReactFlow();
 
-  const [menu, setMenu] = useState<{ x: number, y: number, type: 'node' | 'pane', id?: string, data?: any } | null>(null);
+  const [menu, setMenu] = useState<{ x: number, y: number, type: 'node' | 'pane' | 'edge', id?: string, data?: any } | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
   const editInputRef = useRef<HTMLInputElement>(null);
 
   const currentMap = maps.find((m: any) => m.id === currentMapId);
+  const themeColor = THEME_CONFIG[theme] || '#A855F7';
 
   useEffect(() => {
     if (isEditingName && editInputRef.current) {
@@ -107,6 +121,24 @@ function Flow() {
     [setMenu]
   );
 
+  const onEdgeContextMenu = useCallback(
+    (event: any, edge: Edge) => {
+      event.preventDefault();
+      setMenu({
+        x: event.clientX,
+        y: event.clientY,
+        type: 'edge',
+        id: edge.id,
+      });
+    },
+    [setMenu]
+  );
+
+  const onReconnect = useCallback(
+    (oldEdge: Edge, newConnection: Connection) => setEdges(reconnectEdge(oldEdge, newConnection, edges)),
+    [edges, setEdges]
+  );
+
   const onMoveStart = useCallback(() => {
     if (!isPinned) {
       setSidebarHidden(true);
@@ -126,13 +158,16 @@ function Flow() {
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       onConnect={onConnect}
+      onReconnect={onReconnect}
       onPaneClick={onPaneClick}
       onNodeClick={onNodeClick}
       onPaneContextMenu={onPaneContextMenu}
       onNodeContextMenu={onNodeContextMenu}
+      onEdgeContextMenu={onEdgeContextMenu}
       onMoveStart={onMoveStart}
       onNodeDragStart={onNodeDragStart}
       nodeTypes={nodeTypes}
+      reconnectable={true}
       fitView
       snapToGrid={true}
       snapGrid={[15, 15]}
@@ -149,7 +184,13 @@ function Flow() {
       />
       <Panel position="top-left" className="p-4 m-4 flex flex-col gap-2 bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl transition-all duration-500">
         <div className="flex items-center gap-2.5">
-          <Brain className={`w-6 h-6 text-purple-500 transition-all duration-1000 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)] ${theme === 'royal' ? 'royal-glow text-yellow-500' : ''}`} />
+          <Brain 
+            className="w-6 h-6 transition-all duration-1000" 
+            style={{ 
+              color: themeColor,
+              filter: `drop-shadow(0 0 8px ${themeColor}80)` 
+            }}
+          />
           <h1 className="text-xl font-black bg-gradient-to-r from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent tracking-tighter">
             MindPuke
           </h1>
