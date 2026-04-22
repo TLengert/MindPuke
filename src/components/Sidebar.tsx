@@ -1,5 +1,5 @@
 import { useShallow } from 'zustand/react/shallow';
-import useStore from '../store/useStore';
+import useStore, { THEME_CONFIG } from '../store/useStore';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -83,7 +83,6 @@ export default function Sidebar() {
 
   const { user, logout } = useKindeAuth();
 
-  const currentMap = maps.find((m: any) => m.id === currentMapId);
   const themeColor = theme === 'custom' ? customThemeColor : (THEME_CONFIG[theme] || '#A855F7');
   
   const colors = [

@@ -308,7 +308,6 @@ const useStore = create<RFState>()(
       // Sidebar & Theme Actions
       isSidebarOpen: true,
       sidebarSide: 'right',
-      theme: 'royal',
       isPinned: false,
       isSidebarHidden: false,
       toggleSidebar: () => {
@@ -467,7 +466,7 @@ const useStore = create<RFState>()(
           state.maps = [firstMap];
           state.currentMapId = firstMap.id;
           state.theme = firstMap.theme;
-          state.customThemeColor = firstMap.customThemeColor;
+          state.customThemeColor = firstMap.customThemeColor || '#FFD700';
           state.edgeType = firstMap.edgeType;
         } else if (state.maps.length === 0) {
           // Absolute empty state

@@ -168,7 +168,7 @@ function Flow() {
       onMoveStart={onMoveStart}
       onNodeDragStart={onNodeDragStart}
       nodeTypes={nodeTypes}
-      reconnectable={true}
+      edgesReconnectable={true}
       fitView
       snapToGrid={true}
       snapGrid={[15, 15]}
