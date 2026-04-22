@@ -21,7 +21,10 @@ import {
   CornerDownRight
 } from 'lucide-react';
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useReactFlow } from '@xyflow/react';
+import { toPng } from 'html-to-image';
+import download from 'downloadjs';
 import ShareModal from './ShareModal';
 import UnlockModal from './UnlockModal';
 import { generateFileKey, wrapFileKey, unwrapFileKey, encryptMap, decryptMap, type MpukeEnvelope } from '../lib/crypto';
@@ -82,6 +85,32 @@ export default function Sidebar() {
   } = useStore(useShallow(selector));
 
   const { user, logout } = useKindeAuth();
+  const { getNodes } = useReactFlow();
+
+  const handleExportImage = useCallback(() => {
+    if (nodes.length === 0) return;
+
+    const viewport = document.querySelector('.react-flow__viewport') as HTMLElement;
+    if (viewport) {
+      const currentMapName = maps.find((m: any) => m.id === currentMapId)?.name || 'mindmap';
+      
+      toPng(viewport, {
+        backgroundColor: '#0a0a0a',
+        quality: 1,
+        pixelRatio: 2, // High resolution
+        style: {
+          transform: 'scale(1)', // Capture at 1:1 scale
+        },
+      })
+      .then((dataUrl) => {
+        download(dataUrl, `${currentMapName}.png`);
+      })
+      .catch((err) => {
+        console.error('Export failed:', err);
+        alert('Failed to export map as image.');
+      });
+    }
+  }, [nodes, maps, currentMapId]);
 
   const themeColor = theme === 'custom' ? customThemeColor : (THEME_CONFIG[theme] || '#A855F7');
   
@@ -453,16 +482,24 @@ export default function Sidebar() {
           <section className="mt-4">
             <div className="flex items-center gap-2 mb-3 text-zinc-500 uppercase text-[10px] font-bold tracking-widest px-1">
               <Database className="w-3 h-3" />
-              <span>Local Data</span>
+              <span>Export & Sharing</span>
             </div>
             <div className="flex flex-col gap-2">
+              <button
+                onClick={handleExportImage}
+                className="flex items-center gap-3 p-3 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 hover:border-zinc-700 text-zinc-300 transition-all group"
+              >
+                <Download className="w-4 h-4 text-green-400 group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-medium text-left">Save as Image (PNG)</span>
+              </button>
+
               <button
                 onClick={handleShareClick}
                 className="flex items-center justify-between p-3 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 hover:border-zinc-700 text-zinc-300 transition-all group"
               >
                 <span className="flex items-center gap-3 text-sm font-medium">
-                  <Download className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
-                  Share (.mpuke)
+                  <Database className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
+                  Backup (.mpuke)
                 </span>
                 {unexportedChanges && <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" title="Unsaved changes" />}
               </button>

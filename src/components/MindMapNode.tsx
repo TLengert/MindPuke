@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Plus } from 'lucide-react';
+import { Plus, Minus } from 'lucide-react';
 import useStore, { THEME_CONFIG } from '../store/useStore';
 
 export default function MindMapNode({ id, data, selected }: NodeProps) {
@@ -8,6 +8,8 @@ export default function MindMapNode({ id, data, selected }: NodeProps) {
   const updateNodeLabel = useStore((state) => state.updateNodeLabel);
   const theme = useStore((state) => state.theme);
   const customThemeColor = useStore((state) => state.customThemeColor);
+  const toggleBranch = useStore((state) => state.toggleBranch);
+  const hasChildren = useStore((state) => state.edges.some(e => e.source === id));
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const adjustHeight = () => {
@@ -44,7 +46,7 @@ export default function MindMapNode({ id, data, selected }: NodeProps) {
 
   return (
     <div 
-      className="flex items-start gap-2 bg-[#1a1a1a] border rounded-xl p-3 min-w-[180px] transition-all duration-300 group"
+      className="relative flex items-start gap-2 bg-[#1a1a1a] border rounded-xl p-3 min-w-[180px] transition-all duration-300 group"
       style={{ 
         borderColor: borderColor as any,
         boxShadow: selected ? `0 0 20px ${shadowColor}` : '0 10px 15px -3px rgb(0 0 0 / 0.3)'
@@ -89,6 +91,23 @@ export default function MindMapNode({ id, data, selected }: NodeProps) {
       >
         <Plus className="w-3.5 h-3.5 font-bold" />
       </button>
+
+      {hasChildren && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleBranch(id);
+          }}
+          className={`absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full border transition-all duration-300 z-30 shadow-[0_0_10px_rgba(0,0,0,0.5)] ${
+            data.isCollapsed 
+              ? 'bg-gradient-to-br from-red-500 to-amber-500 border-red-400/50 text-white scale-110 shadow-red-500/20' 
+              : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 hover:scale-110 opacity-0 group-hover:opacity-100'
+          }`}
+          title={data.isCollapsed ? "Expand branch" : "Collapse branch"}
+        >
+          {data.isCollapsed ? <Plus className="w-3 h-3 font-bold" /> : <Minus className="w-3 h-3" />}
+        </button>
+      )}
     </div>
   );
 }

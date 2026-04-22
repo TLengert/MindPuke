@@ -70,6 +70,7 @@ interface RFState {
   deleteEdge: (edgeId: string) => void;
   updateNodeColor: (nodeIds: string[], color: string) => void;
   updateEdgeColor: (edgeIds: string[], color: string) => void;
+  toggleBranch: (nodeId: string) => void;
   // Local First & Export
   unexportedChanges: boolean;
   markExported: () => void;
@@ -128,6 +129,7 @@ const useStore = create<RFState>()(
           unexportedChanges: true,
         });
       },
+      onConnect: (connection) => {
         const { theme, customThemeColor, edgeType, currentMapId, maps } = get();
         // Fallback color for new edges
         const color = theme === 'custom' ? customThemeColor : THEME_CONFIG[theme];
@@ -455,6 +457,66 @@ const useStore = create<RFState>()(
           m.id === currentMapId ? { ...m, edges: newEdges, lastModified: Date.now() } : m
         );
         set({
+          edges: newEdges,
+          maps: newMaps,
+          unexportedChanges: true,
+        });
+      },
+      toggleBranch: (nodeId) => {
+        const { currentMapId, maps, nodes, edges } = get();
+        const targetNode = nodes.find(n => n.id === nodeId);
+        if (!targetNode) return;
+
+        const isCollapsed = !targetNode.data?.isCollapsed;
+
+        const edgesToUpdate = new Set<string>();
+        const nodesToUpdate = new Set<string>();
+
+        const traverse = (currentId: string, hide: boolean) => {
+          const outgoingEdges = edges.filter(e => e.source === currentId);
+          outgoingEdges.forEach(edge => {
+            edgesToUpdate.add(edge.id);
+            nodesToUpdate.add(edge.target);
+            
+            const targetChild = nodes.find(n => n.id === edge.target);
+            
+            if (hide) {
+              traverse(edge.target, true);
+            } else {
+              if (targetChild && !targetChild.data?.isCollapsed) {
+                traverse(edge.target, false);
+              }
+            }
+          });
+        };
+
+        traverse(nodeId, isCollapsed);
+
+        const newNodes = nodes.map(n => {
+          if (n.id === nodeId) {
+            return { ...n, data: { ...n.data, isCollapsed } };
+          }
+          if (nodesToUpdate.has(n.id)) {
+            return { ...n, hidden: isCollapsed };
+          }
+          return n;
+        });
+
+        const newEdges = edges.map(e => {
+          if (edgesToUpdate.has(e.id)) {
+            return { ...e, hidden: isCollapsed };
+          }
+          return e;
+        });
+
+        const newMaps = maps.map(m => 
+          m.id === currentMapId 
+            ? { ...m, nodes: newNodes, edges: newEdges, lastModified: Date.now() } 
+            : m
+        );
+
+        set({
+          nodes: newNodes,
           edges: newEdges,
           maps: newMaps,
           unexportedChanges: true,
