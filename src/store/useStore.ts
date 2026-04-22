@@ -25,6 +25,8 @@ interface MapData {
   edges: Edge[];
   theme: string;
   customThemeColor?: string;
+  customNodeColors?: Record<string, string>;
+  customEdgeColors?: Record<string, string>;
   edgeType: string;
   createdAt: number;
   lastModified: number;
@@ -126,14 +128,15 @@ const useStore = create<RFState>()(
           unexportedChanges: true,
         });
       },
-      onConnect: (connection: Connection) => {
-        const { edgeType, currentMapId, maps } = get();
+        const { theme, customThemeColor, edgeType, currentMapId, maps } = get();
+        // Fallback color for new edges
+        const color = theme === 'custom' ? customThemeColor : THEME_CONFIG[theme];
 
         const newEdge = {
           ...connection,
           id: crypto.randomUUID(),
           type: edgeType,
-          style: {}, // Inherit from theme
+          style: color ? { stroke: color } : {},
         } as Edge;
         
         const newEdges = addEdge(newEdge, get().edges);
@@ -162,13 +165,14 @@ const useStore = create<RFState>()(
         set({ edges, maps: newMaps });
       },
       addNode: (x, y) => {
-        const { nodes, currentMapId, maps } = get();
+        const { theme, customThemeColor, nodes, currentMapId, maps } = get();
+        const color = theme === 'custom' ? customThemeColor : THEME_CONFIG[theme];
         const newNodeId = crypto.randomUUID();
         const newNode: Node = {
           id: newNodeId,
           type: 'mindmap',
           position: { x, y },
-          data: { label: 'New Thought', autoFocus: true },
+          data: { label: 'New Thought', autoFocus: true, color: color },
         };
         const newNodes = nodes.concat(newNode);
         const newMaps = maps.map(m => 
@@ -177,16 +181,18 @@ const useStore = create<RFState>()(
         set({ nodes: newNodes, maps: newMaps, unexportedChanges: true });
       },
       addChildNode: (parentNodeId) => {
-        const { nodes, edges, currentMapId, maps } = get();
+        const { nodes, edges, theme, customThemeColor, currentMapId, maps } = get();
         const parentNode = nodes.find((n) => n.id === parentNodeId);
         if (!parentNode) return;
+
+        const color = theme === 'custom' ? customThemeColor : THEME_CONFIG[theme];
 
         const newNodeId = crypto.randomUUID();
         const newNode: Node = {
           id: newNodeId,
           type: 'mindmap',
           position: { x: parentNode.position.x + 250, y: parentNode.position.y },
-          data: { label: 'New Thought', autoFocus: true },
+          data: { label: 'New Thought', autoFocus: true, color: color },
         };
 
         const newEdge: Edge = {
@@ -194,7 +200,7 @@ const useStore = create<RFState>()(
           source: parentNodeId,
           target: newNodeId,
           type: get().edgeType,
-          style: {},
+          style: color ? { stroke: color } : {},
         };
 
         const newNodes = nodes.concat(newNode);
@@ -313,11 +319,48 @@ const useStore = create<RFState>()(
         set({ sidebarSide: side });
       },
       setTheme: (theme) => {
-        const { currentMapId, maps } = get();
+        const { currentMapId, maps, nodes, edges, customThemeColor } = get();
+        const oldTheme = get().theme;
+        const currentMap = maps.find(m => m.id === currentMapId);
+        
+        let customNodeColors = currentMap?.customNodeColors || {};
+        let customEdgeColors = currentMap?.customEdgeColors || {};
+
+        // 1. If we are LEAVING 'custom', snapshot current manual colors
+        if (oldTheme === 'custom') {
+          nodes.forEach(n => { if (n.data.color) customNodeColors[n.id] = n.data.color; });
+          edges.forEach(e => { if (e.style?.stroke) customEdgeColors[e.id] = e.style.stroke; });
+        }
+
+        let newNodes = nodes;
+        let newEdges = edges;
+
+        // 2. Determine new state
+        if (theme === 'custom') {
+          // Restore from snapshot
+          newNodes = nodes.map(n => ({ ...n, data: { ...n.data, color: customNodeColors[n.id] || customThemeColor } }));
+          newEdges = edges.map(e => ({ ...e, style: { ...e.style, stroke: customEdgeColors[e.id] || customThemeColor } }));
+        } else {
+          // Apply global theme color
+          const color = THEME_CONFIG[theme];
+          if (color) {
+            newNodes = nodes.map(n => ({ ...n, data: { ...n.data, color } }));
+            newEdges = edges.map(e => ({ ...e, style: { ...e.style, stroke: color } }));
+          }
+        }
+
         const newMaps = maps.map(m => 
-          m.id === currentMapId ? { ...m, theme, lastModified: Date.now() } : m
+          m.id === currentMapId 
+            ? { ...m, theme, nodes: newNodes, edges: newEdges, customNodeColors, customEdgeColors, lastModified: Date.now() } 
+            : m
         );
-        set({ theme, maps: newMaps });
+        
+        set({ 
+          theme,
+          nodes: newNodes,
+          edges: newEdges,
+          maps: newMaps
+        });
       },
       setCustomThemeColor: (color) => {
         const { currentMapId, maps, theme } = get();
