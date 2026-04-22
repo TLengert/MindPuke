@@ -73,6 +73,7 @@ export default function MindMapNode({ id, data, selected }: NodeProps) {
         <textarea
           ref={textareaRef}
           value={data.label as string}
+          onFocus={() => useStore.getState().pushHistory()}
           onChange={(e) => {
             updateNodeLabel(id, e.target.value);
             adjustHeight();

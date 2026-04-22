@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { useState, useCallback } from 'react';
-import { useReactFlow } from '@xyflow/react';
 import { toPng } from 'html-to-image';
 import download from 'downloadjs';
 import ShareModal from './ShareModal';
@@ -85,7 +84,6 @@ export default function Sidebar() {
   } = useStore(useShallow(selector));
 
   const { user, logout } = useKindeAuth();
-  const { getNodes } = useReactFlow();
 
   const handleExportImage = useCallback(() => {
     if (nodes.length === 0) return;

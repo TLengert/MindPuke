@@ -42,12 +42,16 @@ const selector = (state: any) => ({
   theme: state.theme,
   customThemeColor: state.customThemeColor,
   edgeType: state.edgeType,
+  undo: state.undo,
+  redo: state.redo,
+  pushHistory: state.pushHistory,
 });
 
 function Flow() {
   const { 
     nodes, edges, onNodesChange, onEdgesChange, onConnect, setEdges,
-    addNode, isPinned, setSidebarHidden, currentMapId, maps, renameMap, theme, customThemeColor, edgeType
+    addNode, isPinned, setSidebarHidden, currentMapId, maps, renameMap, theme, customThemeColor, edgeType,
+    undo, redo, pushHistory
   } = useStore(useShallow(selector));
   const { screenToFlowPosition } = useReactFlow();
 
@@ -58,6 +62,27 @@ function Flow() {
 
   const currentMap = maps.find((m: any) => m.id === currentMapId);
   const themeColor = theme === 'custom' ? customThemeColor : (THEME_CONFIG[theme] || '#A855F7');
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input/textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+      
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo]);
 
   useEffect(() => {
     if (isEditingName && editInputRef.current) {
@@ -148,10 +173,11 @@ function Flow() {
   }, [isPinned, setSidebarHidden]);
 
   const onNodeDragStart = useCallback(() => {
+    pushHistory();
     if (!isPinned) {
       setSidebarHidden(true);
     }
-  }, [isPinned, setSidebarHidden]);
+  }, [isPinned, setSidebarHidden, pushHistory]);
 
   return (
     <ReactFlow

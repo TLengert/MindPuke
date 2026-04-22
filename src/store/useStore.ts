@@ -9,7 +9,6 @@ import {
   type OnNodesChange,
   type OnEdgesChange,
   type OnConnect,
-  type Connection,
 } from '@xyflow/react';
 
 export let activeUserId = 'guest';
@@ -32,6 +31,10 @@ interface MapData {
   lastModified: number;
 }
 
+interface HistorySnapshot {
+  maps: MapData[];
+}
+
 interface RFState {
   nodes: Node[];
   edges: Edge[];
@@ -40,6 +43,13 @@ interface RFState {
   edgeType: string;
   maps: MapData[];
   currentMapId: string;
+  // History State
+  past: HistorySnapshot[];
+  future: HistorySnapshot[];
+  pushHistory: () => void;
+  undo: () => void;
+  redo: () => void;
+  // Handlers
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
@@ -96,6 +106,75 @@ const useStore = create<RFState>()(
       customThemeColor: '#A855F7',
       edgeType: 'smoothstep',
       unexportedChanges: false,
+      past: [],
+      future: [],
+      pushHistory: () => {
+        const { maps, past } = get();
+        // Limit history to 50 items to prevent unbounded memory growth
+        const newPast = [...past, { maps }].slice(-50);
+        set({ past: newPast, future: [] });
+      },
+      undo: () => {
+        const { past, future, maps, currentMapId } = get();
+        if (past.length === 0) return;
+        
+        let previous = past[past.length - 1];
+        let newPast = past.slice(0, past.length - 1);
+        
+        // Skip identical states (e.g. from onFocus or dragStart where state didn't change)
+        while (previous.maps === maps && newPast.length > 0) {
+          previous = newPast[newPast.length - 1];
+          newPast = newPast.slice(0, newPast.length - 1);
+        }
+
+        if (previous.maps === maps) return;
+        
+        const newFuture = [{ maps }, ...future];
+        
+        const activeMap = previous.maps.find(m => m.id === currentMapId) || previous.maps[0];
+        
+        set({
+          past: newPast,
+          future: newFuture,
+          maps: previous.maps,
+          nodes: activeMap?.nodes || [],
+          edges: activeMap?.edges || [],
+          theme: activeMap?.theme || 'royal',
+          customThemeColor: activeMap?.customThemeColor || '#FFD700',
+          edgeType: activeMap?.edgeType || 'smoothstep',
+          unexportedChanges: true,
+        });
+      },
+      redo: () => {
+        const { past, future, maps, currentMapId } = get();
+        if (future.length === 0) return;
+        
+        let next = future[0];
+        let newFuture = future.slice(1);
+        
+        while (next.maps === maps && newFuture.length > 0) {
+          next = newFuture[0];
+          newFuture = newFuture.slice(1);
+        }
+
+        if (next.maps === maps) return;
+
+        const newPast = [...past, { maps }];
+        
+        const activeMap = next.maps.find(m => m.id === currentMapId) || next.maps[0];
+        
+        set({
+          past: newPast,
+          future: newFuture,
+          maps: next.maps,
+          nodes: activeMap?.nodes || [],
+          edges: activeMap?.edges || [],
+          theme: activeMap?.theme || 'royal',
+          customThemeColor: activeMap?.customThemeColor || '#FFD700',
+          edgeType: activeMap?.edgeType || 'smoothstep',
+          unexportedChanges: true,
+        });
+      },
       markExported: () => set({ unexportedChanges: false }),
       markChanged: () => set({ unexportedChanges: true }),
       importData: (nodes, edges) => {
@@ -134,6 +213,7 @@ const useStore = create<RFState>()(
         // Fallback color for new edges
         const color = theme === 'custom' ? customThemeColor : THEME_CONFIG[theme];
 
+        get().pushHistory();
         const newEdge = {
           ...connection,
           id: crypto.randomUUID(),
@@ -167,6 +247,7 @@ const useStore = create<RFState>()(
         set({ edges, maps: newMaps });
       },
       addNode: (x, y) => {
+        get().pushHistory();
         const { theme, customThemeColor, nodes, currentMapId, maps } = get();
         const color = theme === 'custom' ? customThemeColor : THEME_CONFIG[theme];
         const newNodeId = crypto.randomUUID();
@@ -183,6 +264,7 @@ const useStore = create<RFState>()(
         set({ nodes: newNodes, maps: newMaps, unexportedChanges: true });
       },
       addChildNode: (parentNodeId) => {
+        get().pushHistory();
         const { nodes, edges, theme, customThemeColor, currentMapId, maps } = get();
         const parentNode = nodes.find((n) => n.id === parentNodeId);
         if (!parentNode) return;
@@ -321,6 +403,7 @@ const useStore = create<RFState>()(
         set({ sidebarSide: side });
       },
       setTheme: (theme) => {
+        get().pushHistory();
         const { currentMapId, maps, nodes, edges, customThemeColor } = get();
         const oldTheme = get().theme;
         const currentMap = maps.find(m => m.id === currentMapId);
@@ -330,8 +413,8 @@ const useStore = create<RFState>()(
 
         // 1. If we are LEAVING 'custom', snapshot current manual colors
         if (oldTheme === 'custom') {
-          nodes.forEach(n => { if (n.data.color) customNodeColors[n.id] = n.data.color; });
-          edges.forEach(e => { if (e.style?.stroke) customEdgeColors[e.id] = e.style.stroke; });
+          nodes.forEach(n => { if (n.data.color) customNodeColors[n.id] = n.data.color as string; });
+          edges.forEach(e => { if (e.style?.stroke) customEdgeColors[e.id] = e.style.stroke as string; });
         }
 
         let newNodes = nodes;
@@ -367,6 +450,7 @@ const useStore = create<RFState>()(
       setCustomThemeColor: (color) => {
         const { currentMapId, maps, theme } = get();
         if (theme !== 'custom') return;
+        get().pushHistory();
         
         const newNodes = get().nodes.map(n => ({ ...n, data: { ...n.data, color } }));
         const newEdges = get().edges.map(e => ({ ...e, style: { ...e.style, stroke: color } }));
@@ -383,6 +467,7 @@ const useStore = create<RFState>()(
         });
       },
       setEdgeType: (type) => {
+        get().pushHistory();
         const { currentMapId, maps } = get();
         const newEdges = get().edges.map(e => ({ ...e, type }));
         const newMaps = maps.map(m => 
@@ -403,6 +488,7 @@ const useStore = create<RFState>()(
       },
       // Node Management Actions
       deleteNode: (nodeId) => {
+        get().pushHistory();
         const { currentMapId, maps } = get();
         const newNodes = get().nodes.filter((node) => node.id !== nodeId);
         const newEdges = get().edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId);
@@ -417,6 +503,7 @@ const useStore = create<RFState>()(
         });
       },
       deleteEdge: (edgeId) => {
+        get().pushHistory();
         const { currentMapId, maps } = get();
         const newEdges = get().edges.filter((edge) => edge.id !== edgeId);
         const newMaps = maps.map(m => 
@@ -429,6 +516,7 @@ const useStore = create<RFState>()(
         });
       },
       updateNodeColor: (nodeIds, color) => {
+        get().pushHistory();
         const { currentMapId, maps } = get();
         const newNodes = get().nodes.map((node) => {
           if (nodeIds.includes(node.id)) {
@@ -446,6 +534,7 @@ const useStore = create<RFState>()(
         });
       },
       updateEdgeColor: (edgeIds, color) => {
+        get().pushHistory();
         const { currentMapId, maps } = get();
         const newEdges = get().edges.map((edge) => {
           if (edgeIds.includes(edge.id)) {
@@ -463,6 +552,7 @@ const useStore = create<RFState>()(
         });
       },
       toggleBranch: (nodeId) => {
+        get().pushHistory();
         const { currentMapId, maps, nodes, edges } = get();
         const targetNode = nodes.find(n => n.id === nodeId);
         if (!targetNode) return;
@@ -525,6 +615,9 @@ const useStore = create<RFState>()(
     }),
     {
       name: 'mindpuke-v1',
+      partialize: (state) => Object.fromEntries(
+        Object.entries(state).filter(([key]) => !['past', 'future'].includes(key))
+      ),
       storage: createJSONStorage(() => ({
         getItem: (name) => localStorage.getItem(`${name}-${activeUserId}`),
         setItem: (name, value) => {
