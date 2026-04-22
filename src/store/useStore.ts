@@ -127,14 +127,13 @@ const useStore = create<RFState>()(
         });
       },
       onConnect: (connection: Connection) => {
-        const { theme, customThemeColor, edgeType, currentMapId, maps } = get();
-        const color = theme === 'custom' ? customThemeColor : THEME_CONFIG[theme];
+        const { edgeType, currentMapId, maps } = get();
 
         const newEdge = {
           ...connection,
           id: crypto.randomUUID(),
           type: edgeType,
-          style: color ? { stroke: color } : undefined,
+          style: {}, // Inherit from theme
         } as Edge;
         
         const newEdges = addEdge(newEdge, get().edges);
@@ -163,14 +162,13 @@ const useStore = create<RFState>()(
         set({ edges, maps: newMaps });
       },
       addNode: (x, y) => {
-        const { theme, customThemeColor, nodes, currentMapId, maps } = get();
-        const color = theme === 'custom' ? customThemeColor : THEME_CONFIG[theme];
+        const { nodes, currentMapId, maps } = get();
         const newNodeId = crypto.randomUUID();
         const newNode: Node = {
           id: newNodeId,
           type: 'mindmap',
           position: { x, y },
-          data: { label: 'New Thought', autoFocus: true, color: color },
+          data: { label: 'New Thought', autoFocus: true },
         };
         const newNodes = nodes.concat(newNode);
         const newMaps = maps.map(m => 
@@ -179,18 +177,16 @@ const useStore = create<RFState>()(
         set({ nodes: newNodes, maps: newMaps, unexportedChanges: true });
       },
       addChildNode: (parentNodeId) => {
-        const { nodes, edges, theme, customThemeColor, currentMapId, maps } = get();
+        const { nodes, edges, currentMapId, maps } = get();
         const parentNode = nodes.find((n) => n.id === parentNodeId);
         if (!parentNode) return;
-
-        const color = theme === 'custom' ? customThemeColor : THEME_CONFIG[theme];
 
         const newNodeId = crypto.randomUUID();
         const newNode: Node = {
           id: newNodeId,
           type: 'mindmap',
           position: { x: parentNode.position.x + 250, y: parentNode.position.y },
-          data: { label: 'New Thought', autoFocus: true, color: color },
+          data: { label: 'New Thought', autoFocus: true },
         };
 
         const newEdge: Edge = {
@@ -198,7 +194,7 @@ const useStore = create<RFState>()(
           source: parentNodeId,
           target: newNodeId,
           type: get().edgeType,
-          style: color ? { stroke: color } : undefined,
+          style: {},
         };
 
         const newNodes = nodes.concat(newNode);
@@ -317,27 +313,11 @@ const useStore = create<RFState>()(
         set({ sidebarSide: side });
       },
       setTheme: (theme) => {
-        const { currentMapId, maps, customThemeColor } = get();
-        const color = theme === 'custom' ? customThemeColor : THEME_CONFIG[theme];
-        
-        let newNodes = get().nodes;
-        let newEdges = get().edges;
-
-        if (color) {
-          newNodes = newNodes.map(n => ({ ...n, data: { ...n.data, color } }));
-          newEdges = newEdges.map(e => ({ ...e, style: { ...e.style, stroke: color } }));
-        }
-
+        const { currentMapId, maps } = get();
         const newMaps = maps.map(m => 
-          m.id === currentMapId ? { ...m, theme, nodes: newNodes, edges: newEdges, lastModified: Date.now() } : m
+          m.id === currentMapId ? { ...m, theme, lastModified: Date.now() } : m
         );
-        
-        set({ 
-          theme,
-          nodes: newNodes,
-          edges: newEdges,
-          maps: newMaps
-        });
+        set({ theme, maps: newMaps });
       },
       setCustomThemeColor: (color) => {
         const { currentMapId, maps, theme } = get();

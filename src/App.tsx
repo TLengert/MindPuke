@@ -41,12 +41,13 @@ const selector = (state: any) => ({
   renameMap: state.renameMap,
   theme: state.theme,
   customThemeColor: state.customThemeColor,
+  edgeType: state.edgeType,
 });
 
 function Flow() {
   const { 
     nodes, edges, onNodesChange, onEdgesChange, onConnect, setEdges,
-    addNode, isPinned, setSidebarHidden, currentMapId, maps, renameMap, theme, customThemeColor
+    addNode, isPinned, setSidebarHidden, currentMapId, maps, renameMap, theme, customThemeColor, edgeType
   } = useStore(useShallow(selector));
   const { screenToFlowPosition } = useReactFlow();
 
@@ -169,6 +170,10 @@ function Flow() {
       onNodeDragStart={onNodeDragStart}
       nodeTypes={nodeTypes}
       edgesReconnectable={true}
+      defaultEdgeOptions={{
+        style: { stroke: themeColor, strokeWidth: 2 },
+        type: edgeType
+      }}
       fitView
       snapToGrid={true}
       snapGrid={[15, 15]}

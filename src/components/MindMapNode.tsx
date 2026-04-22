@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Plus } from 'lucide-react';
-import useStore from '../store/useStore';
+import useStore, { THEME_CONFIG } from '../store/useStore';
 
 export default function MindMapNode({ id, data, selected }: NodeProps) {
   const addChildNode = useStore((state) => state.addChildNode);
   const updateNodeLabel = useStore((state) => state.updateNodeLabel);
+  const theme = useStore((state) => state.theme);
+  const customThemeColor = useStore((state) => state.customThemeColor);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const adjustHeight = () => {
@@ -35,8 +37,10 @@ export default function MindMapNode({ id, data, selected }: NodeProps) {
     // Ctrl + Enter naturally adds a newline in a textarea
   };
 
-  const borderColor = data.color || (selected ? '#FFD700' : '#27272a');
-  const shadowColor = data.color ? `${data.color}40` : 'rgba(255,215,0,0.4)';
+  const themeFallback = theme === 'custom' ? customThemeColor : THEME_CONFIG[theme];
+  const nodeColor = data.color || themeFallback || '#A855F7';
+  const borderColor = nodeColor;
+  const shadowColor = `${nodeColor}40`;
 
   return (
     <div 
@@ -46,11 +50,22 @@ export default function MindMapNode({ id, data, selected }: NodeProps) {
         boxShadow: selected ? `0 0 20px ${shadowColor}` : '0 10px 15px -3px rgb(0 0 0 / 0.3)'
       }}
     >
-      {/* Target Handles */}
-      <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-zinc-500 border-2 border-[#1a1a1a] hover:!bg-zinc-400 transition-colors" style={{ top: '40%' }} />
-      <Handle type="target" position={Position.Right} id="target-right" className="w-3 h-3 !bg-zinc-500 border-2 border-[#1a1a1a] hover:!bg-zinc-400 transition-colors" style={{ top: '40%' }} />
-      <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-zinc-500 border-2 border-[#1a1a1a] hover:!bg-zinc-400 transition-colors" style={{ left: '40%' }} />
-      <Handle type="target" position={Position.Bottom} id="target-bottom" className="w-3 h-3 !bg-zinc-500 border-2 border-[#1a1a1a] hover:!bg-zinc-400 transition-colors" style={{ left: '40%' }} />
+      {/* Connection Handles (Overlapped Source & Target) */}
+      {/* Left */}
+      <Handle type="target" position={Position.Left} id="target-left" className="w-3 h-3 !bg-zinc-600 border-2 border-[#1a1a1a] hover:!bg-purple-500 transition-colors z-10" />
+      <Handle type="source" position={Position.Left} id="source-left" className="w-3 h-3 !bg-zinc-600 border-2 border-[#1a1a1a] hover:!bg-purple-500 transition-colors z-20" />
+      
+      {/* Right */}
+      <Handle type="target" position={Position.Right} id="target-right" className="w-3 h-3 !bg-zinc-600 border-2 border-[#1a1a1a] hover:!bg-purple-500 transition-colors z-10" />
+      <Handle type="source" position={Position.Right} id="source-right" className="w-3 h-3 !bg-zinc-600 border-2 border-[#1a1a1a] hover:!bg-purple-500 transition-colors z-20" />
+      
+      {/* Top */}
+      <Handle type="target" position={Position.Top} id="target-top" className="w-3 h-3 !bg-zinc-600 border-2 border-[#1a1a1a] hover:!bg-purple-500 transition-colors z-10" />
+      <Handle type="source" position={Position.Top} id="source-top" className="w-3 h-3 !bg-zinc-600 border-2 border-[#1a1a1a] hover:!bg-purple-500 transition-colors z-20" />
+      
+      {/* Bottom */}
+      <Handle type="target" position={Position.Bottom} id="target-bottom" className="w-3 h-3 !bg-zinc-600 border-2 border-[#1a1a1a] hover:!bg-purple-500 transition-colors z-10" />
+      <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-zinc-600 border-2 border-[#1a1a1a] hover:!bg-purple-500 transition-colors z-20" />
       
       <div className="flex-1 flex flex-col justify-center min-h-[24px]">
         <textarea
@@ -74,12 +89,6 @@ export default function MindMapNode({ id, data, selected }: NodeProps) {
       >
         <Plus className="w-3.5 h-3.5 font-bold" />
       </button>
-
-      {/* Source Handles */}
-      <Handle type="source" position={Position.Left} id="source-left" className="w-3 h-3 !bg-purple-500 border-2 border-[#1a1a1a] hover:!bg-purple-400 transition-colors" style={{ top: '60%' }} />
-      <Handle type="source" position={Position.Right} id="source-right" className="w-3 h-3 !bg-purple-500 border-2 border-[#1a1a1a] hover:!bg-purple-400 transition-colors" style={{ top: '60%' }} />
-      <Handle type="source" position={Position.Top} id="source-top" className="w-3 h-3 !bg-purple-500 border-2 border-[#1a1a1a] hover:!bg-purple-400 transition-colors" style={{ left: '60%' }} />
-      <Handle type="source" position={Position.Bottom} id="source-bottom" className="w-3 h-3 !bg-purple-500 border-2 border-[#1a1a1a] hover:!bg-purple-400 transition-colors" style={{ left: '60%' }} />
     </div>
   );
 }
