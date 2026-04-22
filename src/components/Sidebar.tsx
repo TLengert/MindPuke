@@ -15,7 +15,8 @@ import {
   Download,
   Upload,
   LogOut,
-  Database
+  Database,
+  Plus
 } from 'lucide-react';
 import { useKindeAuth } from "@kinde-oss/kinde-auth-react";
 import { useState } from 'react';
@@ -39,6 +40,11 @@ const selector = (state: any) => ({
   importData: state.importData,
   nodes: state.nodes,
   edges: state.edges,
+  maps: state.maps,
+  currentMapId: state.currentMapId,
+  createMap: state.createMap,
+  switchMap: state.switchMap,
+  deleteMap: state.deleteMap,
 });
 
 export default function Sidebar() {
@@ -57,7 +63,12 @@ export default function Sidebar() {
     markExported,
     importData,
     nodes,
-    edges
+    edges,
+    maps,
+    currentMapId,
+    createMap,
+    switchMap,
+    deleteMap
   } = useStore(useShallow(selector));
 
   const { user, logout } = useKindeAuth();
@@ -187,6 +198,7 @@ export default function Sidebar() {
   };
 
   const themes = [
+    { id: 'royal', label: 'Royal Gold', icon: <Zap className="w-4 h-4" color="#FFD700" /> },
     { id: 'oled', label: 'OLED Dark', icon: <Zap className="w-4 h-4" color="#A855F7" /> },
     { id: 'ocean', label: 'Ocean Blue', icon: <Droplets className="w-4 h-4" color="#3B82F6" /> },
     { id: 'neon', label: 'Neon Pink', icon: <Cloud className="w-4 h-4" color="#EC4899" /> },
@@ -273,6 +285,63 @@ export default function Sidebar() {
       {/* Content */}
       {isSidebarOpen && (
         <div className={`flex-1 p-4 flex flex-col gap-6 overflow-y-auto ${isActuallyHidden ? 'opacity-0' : 'opacity-100'} transition-opacity`}>
+          {/* My Maps Section */}
+          <section>
+            <div className="flex items-center justify-between mb-3 px-1">
+              <div className="flex items-center gap-2 text-zinc-500 uppercase text-[10px] font-bold tracking-widest">
+                <Brain className="w-3 h-3" />
+                <span>My Maps</span>
+              </div>
+              <button 
+                onClick={() => createMap()}
+                className="p-1 px-2 flex items-center gap-1 rounded-md bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 text-[10px] font-bold transition-all"
+                title="Create new map"
+              >
+                <Plus className="w-3 h-3" />
+                NEW
+              </button>
+            </div>
+            <div className="flex flex-col gap-1.5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+              {maps.map((m: any) => (
+                <div 
+                  key={m.id}
+                  className={`group flex items-center gap-2 p-2 rounded-xl transition-all duration-300 border
+                    ${currentMapId === m.id 
+                      ? 'bg-gradient-to-r from-purple-500/10 to-transparent border-purple-500/30' 
+                      : 'bg-transparent border-transparent hover:bg-zinc-900'}
+                  `}
+                >
+                  <button
+                    onClick={() => switchMap(m.id)}
+                    className="flex-1 flex items-center gap-3 text-left"
+                  >
+                    <div className={`w-1.5 h-1.5 rounded-full transition-all duration-300
+                      ${currentMapId === m.id ? 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]' : 'bg-zinc-700'}
+                    `} />
+                    <span className={`text-sm font-medium transition-colors truncate
+                      ${currentMapId === m.id ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-300'}
+                    `}>
+                      {m.name}
+                    </span>
+                  </button>
+                  
+                  {maps.length > 1 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`Delete "${m.name}"?`)) deleteMap(m.id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/10 text-zinc-600 hover:text-red-400 transition-all"
+                      title="Delete map"
+                    >
+                      <LogOut className="w-3 h-3 transform rotate-90" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+
           {/* Themes Section */}
           <section>
             <div className="flex items-center gap-2 mb-3 text-zinc-500 uppercase text-[10px] font-bold tracking-widest px-1">

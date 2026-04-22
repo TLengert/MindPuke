@@ -36,13 +36,10 @@ body,
 }
 
 @keyframes handleGlow {
-
-  0%,
-  100% {
+  0%, 100% {
     box-shadow: 0 0 5px rgba(168, 85, 247, 0.2);
     opacity: 0.6;
   }
-
   50% {
     box-shadow: 0 0 15px rgba(168, 85, 247, 0.6);
     opacity: 1;
@@ -51,4 +48,55 @@ body,
 
 .animate-handle-glow {
   animation: handleGlow 2s ease-in-out infinite;
+}
+
+@keyframes royalGlow {
+  0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.3)); }
+  50% { filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6)) drop-shadow(0 0 25px rgba(239, 68, 68, 0.2)); }
+}
+
+.royal-glow {
+  animation: royalGlow 3s infinite ease-in-out;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* React Flow Customizations */
+.react-flow__controls {
+  box-shadow: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(12px);
+  margin-bottom: 8px !important;
+  margin-left: 8px !important;
+}
+
+.react-flow__controls-button {
+  border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  background: transparent !important;
+  fill: #71717a !important;
+}
+
+.react-flow__controls-button:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  fill: #fff !important;
 }

@@ -2,12 +2,12 @@ import { ReactFlow, Background, Controls, MiniMap, Panel, BackgroundVariant, Rea
 import '@xyflow/react/dist/style.css';
 import { useShallow } from 'zustand/react/shallow';
 import useStore, { setActiveUserId } from './store/useStore';
-import { Brain } from 'lucide-react';
+import { Brain, Pencil, Check, X } from 'lucide-react';
 import MindMapNode from './components/MindMapNode';
 import Sidebar from './components/Sidebar';
 import ContextMenu from './components/ContextMenu';
 import Login from './components/Login';
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useKindeAuth } from '@kinde-oss/kinde-auth-react';
 
 const nodeTypes = {
@@ -23,13 +23,48 @@ const selector = (state: any) => ({
   addNode: state.addNode,
   isPinned: state.isPinned,
   setSidebarHidden: state.setSidebarHidden,
+  currentMapId: state.currentMapId,
+  maps: state.maps,
+  renameMap: state.renameMap,
+  theme: state.theme,
 });
 
 function Flow() {
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNode, isPinned, setSidebarHidden } = useStore(useShallow(selector));
+  const { 
+    nodes, edges, onNodesChange, onEdgesChange, onConnect, 
+    addNode, isPinned, setSidebarHidden, currentMapId, maps, renameMap, theme
+  } = useStore(useShallow(selector));
   const { screenToFlowPosition } = useReactFlow();
 
   const [menu, setMenu] = useState<{ x: number, y: number, type: 'node' | 'pane', id?: string, data?: any } | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  const currentMap = maps.find((m: any) => m.id === currentMapId);
+
+  useEffect(() => {
+    if (isEditingName && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [isEditingName]);
+
+  const handleStartEdit = () => {
+    setEditedName(currentMap?.name || '');
+    setIsEditingName(true);
+  };
+
+  const handleSaveName = () => {
+    if (editedName.trim()) {
+      renameMap(currentMapId, editedName.trim());
+    }
+    setIsEditingName(false);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingName(false);
+  };
 
   const onPaneClick = useCallback((event: any) => {
     setMenu(null);
@@ -112,11 +147,54 @@ function Flow() {
         nodeColor="#555"
         maskColor="rgba(0, 0, 0, 0.7)"
       />
-      <Panel position="top-left" className="p-4 flex items-center gap-2 bg-black/50 backdrop-blur-md border border-white/10 rounded-lg m-4">
-        <Brain className="w-6 h-6 text-purple-500" />
-        <h1 className="text-xl font-bold bg-gradient-to-r from-white to-gray-500 bg-clip-text text-transparent">
-          MindPuke
-        </h1>
+      <Panel position="top-left" className="p-4 m-4 flex flex-col gap-2 bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl transition-all duration-500">
+        <div className="flex items-center gap-2.5">
+          <Brain className={`w-6 h-6 text-purple-500 transition-all duration-1000 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)] ${theme === 'royal' ? 'royal-glow text-yellow-500' : ''}`} />
+          <h1 className="text-xl font-black bg-gradient-to-r from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent tracking-tighter">
+            MindPuke
+          </h1>
+        </div>
+        
+        <div className="group relative flex items-center gap-2 px-1">
+          {isEditingName ? (
+            <div className="flex items-center gap-2">
+              <input
+                ref={editInputRef}
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveName();
+                  if (e.key === 'Escape') handleCancelEdit();
+                }}
+                className="bg-zinc-800/50 border border-purple-500/50 rounded-md px-2 py-0.5 text-sm text-white outline-none focus:border-purple-500 transition-all w-48"
+              />
+              <button 
+                onClick={handleSaveName}
+                className="p-1 rounded-md bg-green-500/20 text-green-400 hover:bg-green-500/30 transition-colors"
+                title="Save name"
+              >
+                <Check className="w-3.5 h-3.5" />
+              </button>
+              <button 
+                onClick={handleCancelEdit}
+                className="p-1 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
+                title="Cancel"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <div 
+              className="flex items-center gap-2 cursor-pointer transition-all duration-300"
+              onClick={handleStartEdit}
+            >
+              <span className="text-sm font-semibold text-zinc-400 group-hover:text-purple-400 transition-colors tracking-wide truncate max-w-[150px]">
+                {currentMap?.name || 'Untitled Journey'}
+              </span>
+              <Pencil className="w-3 h-3 text-zinc-600 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-[-4px] group-hover:translate-x-0" />
+            </div>
+          )}
+        </div>
       </Panel>
     </ReactFlow>
   );
